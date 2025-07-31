@@ -1,0 +1,78 @@
+Worksie/
+  └── README.md
+  └── .env
+  └── firebase.json
+  └── package.json
+  └── replit.nix
+  └── .replit
+  └── public/
+  └── assets/
+  └── docs/
+  └── dataset/
+  └── prompts/
+  └── scripts/
+  └── src/
+Worksie/public/
+  └── index.html
+  └── favicon.ico
+  └── manifest.json
+Worksie/assets/
+  └── logo.png
+  └── background.jpg
+  └── icons/
+Worksie/docs/
+  └── component_reference.md
+  └── dev_handoff_notes.md
+  └── api_integration_guide.md
+Worksie/dataset/
+  └── worksie_training_schema.jsonl
+Worksie/prompts/
+  └── prompt_blueprint_mapper.md
+  └── prompt_deployment_trigger.md
+  └── prompt_ui_designer.md
+Worksie/scripts/
+  └── deploy.sh
+  └── generate_jsonl.py
+Worksie/src/
+  └── main.jsx
+  └── App.jsx
+  └── routes.jsx
+  └── components/
+  └── pages/
+  └── logic/
+  └── hooks/
+  └── context/
+Worksie/src/components/
+  └── LoginForm.jsx
+  └── SignupForm.jsx
+  └── UserProfile.jsx
+  └── AvatarUpload.jsx
+  └── MediaCapture.jsx
+  └── Annotator.jsx
+  └── GalleryViewer.jsx
+  └── LiDARScanner.jsx
+  └── AutoReportBuilder.jsx
+  └── ChecklistBuilder.jsx
+Worksie/src/pages/
+  └── Home.jsx
+  └── Dashboard.jsx
+  └── Reports.jsx
+  └── Tasks.jsx
+  └── CRM.jsx
+  └── Settings.jsx
+  └── Support.jsx
+Worksie/src/logic/
+  └── auth.js
+  └── firestore.js
+  └── stripe.js
+  └── reportBuilder.js
+  └── roleManager.js
+  └── scanProcessor.js
+Worksie/src/hooks/
+  └── useAuth.js
+  └── useUpload.js
+  └── useReportGen.js
+Worksie/src/context/
+  └── AuthContext.js
+  └── UserContext.js
+  └── ThemeContext.js
