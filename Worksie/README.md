@@ -58,7 +58,7 @@ firebase deploy
 ```
 
 ## 🤖 Train with Claude
-Upload `worksie_training_schema.jsonl` and prompts into Claude Code and run:  
+Upload `worksie_training_schema.jsonl` and prompts into Claude Code and run:
 ```txt
 "Use this schema and these agents to scaffold Worksie as a full-stack Firebase + React app."
 ```
@@ -83,3 +83,34 @@ This project uses Firebase for push notifications. To connect to your Firebase p
 3.  **Configure the Service Worker:** The Firebase service worker (`public/firebase-messaging-sw.js`) cannot access environment variables directly. You must manually open this file and replace the placeholder Firebase credentials with your actual project credentials.
 
 Once you have completed these steps, the application will be able to connect to your Firebase project and receive push notifications.
+
+## 📡 Firebase Remote Config
+
+This project uses Firebase Remote Config to allow for dynamic configuration of the application. The configuration is stored in the `config/worksie-remote-config.json` file.
+
+### Importing the Configuration
+
+You can import this configuration into your Firebase project using the Firebase CLI or the REST API.
+
+**Using the REST API (example):**
+
+1.  **Get an access token:**
+    ```bash
+    ACCESS_TOKEN=$(gcloud auth print-access-token)
+    ```
+
+2.  **Push the configuration:**
+    ```bash
+    curl -X PUT \
+     -H "Authorization: Bearer $ACCESS_TOKEN" \
+     -H "Content-Type: application/json; UTF-8" \
+     -d @config/worksie-remote-config.json \
+     "https://firebaseremoteconfig.googleapis.com/v1/projects/YOUR_PROJECT_ID/remoteConfig"
+    ```
+    (Replace `YOUR_PROJECT_ID` with your actual Firebase project ID.)
+
+### Using the Configuration in the App
+
+The application is already set up to fetch and use the Remote Config values. The main logic is in `src/logic/remoteConfig.js`.
+
+The `PromoBanner` component and the primary color are currently controlled by Remote Config. You can extend this to other parts of the application as needed.

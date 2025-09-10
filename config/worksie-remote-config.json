@@ -1,0 +1,59 @@
+{
+  "conditions": [
+    { "name": "Percent_10", "expression": "percentage(10)" },
+    { "name": "Country_ES", "expression": "country in ['ES','MX']" },
+    { "name": "Platform_iOS", "expression": "device.os == 'ios'" },
+    { "name": "Platform_Android", "expression": "device.os == 'android'" },
+    { "name": "AppVersion_Lt_1_2_0", "expression": "app.version < '1.2.0'" },
+    { "name": "Audience_ProUsers", "expression": "user.property['plan'] == 'pro'" }
+  ],
+  "parameters": {
+    "app_primary_color": { "defaultValue": {"value":"#000000"} },
+    "app_accent_blue":  { "defaultValue": {"value":"#4285F4"} },
+    "app_accent_green": { "defaultValue": {"value":"#34A853"} },
+    "app_accent_orange":{"defaultValue": {"value":"#FF6F3C"} },
+    "app_neutral_gray": { "defaultValue": {"value":"#F5F5F5"} },
+    "app_deep_gray":    { "defaultValue": {"value":"#333333"} },
+    "splash_logo_url":  { "defaultValue": {"value":"https://cdn.worksie.ai/assets/worksie-logo.png"} },
+    "app_typography_heading": { "defaultValue": {"value":"Poppins"} },
+    "app_typography_body":    { "defaultValue": {"value":"Inter"} },
+    "default_language": {
+      "defaultValue": {"value":"en"},
+      "conditionalValues": { "Country_ES": {"value":"es"} }
+    },
+    "supported_languages_json": { "defaultValue": {"value":"[\"en\",\"es\"]"} },
+    "feature_payments_enabled": { "defaultValue": {"value":"true"} },
+    "feature_ai_tools_enabled": { "defaultValue": {"value":"true"} },
+    "feature_referrals_enabled": {
+      "defaultValue": {"value":"false"},
+      "conditionalValues": { "Percent_10": {"value":"true"} }
+    },
+    "feature_podcast_tools_enabled": { "defaultValue": {"value":"true"} },
+    "experiment_homepage_variant": { "defaultValue": {"value":"0"} },
+    "promo_banner_enabled": {
+      "defaultValue": {"value":"true"},
+      "conditionalValues": { "Audience_ProUsers": {"value":"false"} }
+    },
+    "promo_banner_text": { "defaultValue": {"value":"🔥 20% OFF Worksie Pro – Limited Time"} },
+    "promo_link_url":    { "defaultValue": {"value":"https://worksie.ai/upgrade"} },
+    "welcome_message": {
+      "defaultValue": {"value":"Welcome to Worksie 🚀"},
+      "conditionalValues": { "Country_ES": {"value":"Bienvenido a Worksie 🚀"} }
+    },
+    "analytics_collection_enabled": { "defaultValue": {"value":"true"} },
+    "maintenance_mode": { "defaultValue": {"value":"false"} },
+    "minimum_app_version_ios": {
+      "defaultValue": {"value":"1.2.0"},
+      "conditionalValues": { "Platform_iOS": {"value":"1.3.0"} }
+    },
+    "minimum_app_version_android": { "defaultValue": {"value":"1.2.0"} },
+    "api_base_url": { "defaultValue": {"value":"https://api.worksie.ai/v1"} },
+    "cdn_base_url": { "defaultValue": {"value":"https://cdn.worksie.ai"} }
+  },
+  "parameterGroups": {
+    "UI": { "parameters": ["app_primary_color","app_accent_blue","app_accent_green","app_accent_orange","app_neutral_gray","app_deep_gray","splash_logo_url","app_typography_heading","app_typography_body"] },
+    "Features": { "parameters": ["feature_payments_enabled","feature_ai_tools_enabled","feature_referrals_enabled","feature_podcast_tools_enabled","experiment_homepage_variant"] },
+    "Marketing": { "parameters": ["promo_banner_enabled","promo_banner_text","promo_link_url","welcome_message","supported_languages_json","default_language"] },
+    "Ops": { "parameters": ["analytics_collection_enabled","maintenance_mode","minimum_app_version_ios","minimum_app_version_android","api_base_url","cdn_base_url"] }
+  }
+}
