@@ -6,6 +6,7 @@ import Tasks from './pages/Tasks.jsx';
 import CRM from './pages/CRM.jsx';
 import Settings from './pages/Settings.jsx';
 import Support from './pages/Support.jsx';
+import Ops from './pages/Ops.jsx';
 
 const router = createBrowserRouter([
   {
@@ -35,6 +36,10 @@ const router = createBrowserRouter([
   {
     path: '/support',
     element: <Support />,
+  },
+  {
+    path: '/ops',
+    element: <Ops />,
   },
 ]);
 

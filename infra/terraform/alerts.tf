@@ -8,6 +8,11 @@ variable "admin_api_url" {
   type        = string
 }
 
+variable "admin_api_audience" {
+  description = "The audience for the Google-signed ID token."
+  type        = string
+}
+
 
 resource "google_pubsub_topic" "alerts_inference_latency" {
   project = var.project_id
@@ -104,13 +109,8 @@ resource "google_cloudfunctions2_function" "slo_rollback_fn" {
     timeout_seconds     = 30
     environment_variables = {
       ADMIN_API_URL          = var.admin_api_url
+      ADMIN_API_AUDIENCE     = var.admin_api_audience
       AUTO_ROLLBACK_DRYRUN   = "false"
-    }
-    secret_environment_variables {
-      key        = "API_BEARER"
-      project_id = var.project_id
-      secret     = google_secret_manager_secret.admin_api_bearer.secret_id
-      version    = "latest"
     }
     service_account_email = google_service_account.rollback_fn_sa.email
   }

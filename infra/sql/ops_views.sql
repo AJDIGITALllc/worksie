@@ -1,7 +1,9 @@
 -- This file contains SQL views for analyzing model audit data in BigQuery.
 -- These views should be created in your GCP project after the BigQuery table has been created.
 -- You can run these commands using the `bq` CLI tool or in the BigQuery UI.
--- NOTE: You must replace `your-gcp-project-id` with your actual Google Cloud project ID.
+--
+-- IMPORTANT: Before running, you must replace all instances of `your-gcp-project-id`
+-- with your actual Google Cloud project ID.
 
 -- 1) Flattened audit events (type, who, model, rollout, ts)
 CREATE OR REPLACE VIEW `your-gcp-project-id.ops.audit_events` AS

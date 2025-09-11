@@ -1,0 +1,120 @@
+{
+  "displayName": "Worksie — Inference Ops (Full)",
+  "gridLayout": {
+    "columns": "2",
+    "widgets": [
+      {
+        "title": "Cloud Run Latency (P50 / P95)",
+        "xyChart": {
+          "dataSets": [
+            {
+              "legendTemplate": "P50",
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"run.googleapis.com/request_latencies\" resource.type=\"cloud_run_revision\" resource.label.\"service_name\"=\"worksie-inference\"",
+                  "aggregation": { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_PERCENTILE_50" }
+                }
+              }
+            },
+            {
+              "legendTemplate": "P95",
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"run.googleapis.com/request_latencies\" resource.type=\"cloud_run_revision\" resource.label.\"service_name\"=\"worksie-inference\"",
+                  "aggregation": { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_PERCENTILE_95" }
+                }
+              }
+            }
+          ],
+          "yAxis": { "label": "ms", "scale": "LINEAR" }
+        }
+      },
+      {
+        "title": "Requests & 5xx Ratio",
+        "xyChart": {
+          "dataSets": [
+            {
+              "legendTemplate": "Requests/s",
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" resource.label.\"service_name\"=\"worksie-inference\"",
+                  "aggregation": { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_RATE" }
+                }
+              }
+            },
+            {
+              "legendTemplate": "5xx/s",
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" resource.label.\"service_name\"=\"worksie-inference\" metric.label.\"response_code_class\"=\"5xx\"",
+                  "aggregation": { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_RATE" }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "title": "Synthetic Latency (API)",
+        "xyChart": {
+          "dataSets": [
+            {
+              "legendTemplate": "Synthetic API ms",
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"logging.googleapis.com/user/synthetic_latency_api_ms\""
+                }
+              }
+            }
+          ],
+          "yAxis": { "label": "ms", "scale": "LINEAR" }
+        }
+      },
+      {
+        "title": "Synthetic Latency (Inference)",
+        "xyChart": {
+          "dataSets": [
+            {
+              "legendTemplate": "Synthetic Inference ms",
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"logging.googleapis.com/user/synthetic_latency_inference_ms\""
+                }
+              }
+            }
+          ],
+          "yAxis": { "label": "ms", "scale": "LINEAR" }
+        }
+      },
+      {
+        "title": "Model Split (custom metric)",
+        "pieChart": {
+          "dataSets": [
+            {
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"custom.googleapis.com/worksie/inference/model_served\""
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "title": "refine-jobs Backlog",
+        "xyChart": {
+          "dataSets": [
+            {
+              "legendTemplate": "Undelivered msgs",
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "metric.type=\"pubsub.googleapis.com/subscription/num_undelivered_messages\" resource.label.\"subscription_id\"=\"refine-jobs-sub\""
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

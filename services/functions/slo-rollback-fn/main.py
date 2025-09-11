@@ -4,12 +4,20 @@ import os
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from google.cloud import firestore
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
 
-ADMIN_API_BASE_URL = os.environ.get("ADMIN_API_URL") # Should be the base URL, e.g., https://api.your-domain.com
-API_BEARER = os.environ.get("API_BEARER", "")
+ADMIN_API_BASE_URL = os.environ.get("ADMIN_API_URL")
+ADMIN_API_AUDIENCE = os.environ.get("ADMIN_API_AUDIENCE")
 DEBOUNCE_MINUTES = 15
 
 db = firestore.Client()
+
+def get_id_token():
+    """Fetches a Google-signed ID token for the specified audience."""
+    if not ADMIN_API_AUDIENCE:
+        raise ValueError("ADMIN_API_AUDIENCE environment variable not set.")
+    return id_token.fetch_id_token(grequests.Request(), ADMIN_API_AUDIENCE)
 
 def get_active_model_id_from_firestore():
     """Fetches the currently active model ID directly from Firestore."""
@@ -24,11 +32,12 @@ def call_rollback():
     if not ADMIN_API_BASE_URL:
         raise ValueError("ADMIN_API_URL is not set.")
 
+    token = get_id_token()
     url = f"{ADMIN_API_BASE_URL}/v1/admin/models/rollback"
     req = urllib.request.Request(
         url,
         data=json.dumps({}).encode("utf-8"), # Rollback to previous model by default
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {API_BEARER}"},
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=10) as resp:
@@ -41,6 +50,7 @@ def clamp_canary():
     if not active_model_id:
         raise ValueError("Could not determine active model ID to clamp.")
 
+    token = get_id_token()
     url = f"{ADMIN_API_BASE_URL}/v1/admin/models/promote"
     payload = {
         "modelId": active_model_id,
@@ -50,7 +60,7 @@ def clamp_canary():
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {API_BEARER}"},
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=10) as resp:

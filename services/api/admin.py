@@ -10,32 +10,21 @@ METRIC_BUDGETS = {
     "p95_ms": 2000,   # Maximum acceptable p95 latency in milliseconds
 }
 
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import secrets
+# --- Security Note ---
+# This service is protected by Cloud Run's built-in authentication, which
+# validates the Google-signed ID token from callers. The `gcloud run services update`
+# command with `--no-allow-unauthenticated` should be used to enforce this.
+# The user's identity is available in the `X-Goog-Authenticated-User-Email` header.
+# For simplicity, we are not using it here, but a real system would.
 
-# --- Security ---
-# This uses a simple bearer token for authentication. In a production system,
-# this should be replaced with a more robust OIDC or JWT validation flow.
-bearer_scheme = HTTPBearer()
-ADMIN_API_BEARER_TOKEN = os.getenv("API_BEARER")
-
-def require_admin(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
-    """Dependency to ensure the user is an admin."""
-    if not ADMIN_API_BEARER_TOKEN:
-        raise HTTPException(status_code=500, detail="Admin bearer token not configured on server.")
-
-    is_authorized = secrets.compare_digest(creds.credentials, ADMIN_API_BEARER_TOKEN)
-    if not is_authorized:
-        raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing bearer token.")
-
-    # Return a mock user object. In a real system, this would come from the token claims.
-    return {"uid": "api-admin-user", "isAdmin": True}
-
-
-router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
+router = APIRouter(prefix="/v1/admin", tags=["admin"])
 publisher = pubsub_v1.PublisherClient()
 db = firestore.Client()
 PROMOTE_TOPIC = os.getenv("PROMOTE_TOPIC")
+
+# Mock user for now. In a real app, you might get this from the
+# X-Goog-Authenticated-User-Email header.
+MOCK_USER = {"uid": "service-account-user", "isAdmin": True}
 
 class PromoteReq(BaseModel):
     modelId: str
@@ -44,7 +33,8 @@ class PromoteReq(BaseModel):
     trigger: str = "pubsub"
 
 @router.post("/models/promote")
-def promote(req: PromoteReq, user=Depends(require_admin)):
+def promote(req: PromoteReq):
+    user = MOCK_USER
     # --- Promotion Guard Logic ---
     model_ref = db.collection("model_registry").document(req.modelId)
     model_doc = model_ref.get()
@@ -92,7 +82,8 @@ class RollbackReq(BaseModel):
     toModelId: str | None = None
 
 @router.post("/models/rollback")
-def rollback(req: RollbackReq, user=Depends(require_admin)):
+def rollback(req: RollbackReq):
+    user = MOCK_USER
     payload = { "rollbackTo": req.toModelId, "requestedBy": user["uid"] }
     # The user's spec sends a message with an "action" key.
     message_payload = {"action": "rollback", **payload}

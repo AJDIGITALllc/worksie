@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from services.api.admin import router as admin_router
+from services.api.ops import router as ops_router
 
 app = FastAPI(
     title="Worksie Admin API",
@@ -11,6 +12,7 @@ import time
 from fastapi import Request
 
 app.include_router(admin_router)
+app.include_router(ops_router)
 
 @app.get("/")
 def read_root():
