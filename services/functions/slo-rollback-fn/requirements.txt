@@ -1,3 +1,0 @@
-# This function uses the google-cloud-firestore library to
-# manage the debounce timestamp.
-google-cloud-firestore
