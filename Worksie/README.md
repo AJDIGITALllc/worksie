@@ -114,3 +114,31 @@ You can import this configuration into your Firebase project using the Firebase 
 The application is already set up to fetch and use the Remote Config values. The main logic is in `src/logic/remoteConfig.js`.
 
 The `PromoBanner` component and the primary color are currently controlled by Remote Config. You can extend this to other parts of the application as needed.
+
+## 💳 Stripe Configuration
+
+This project uses Stripe for payment processing. To connect to your Stripe account, you will need to set up your environment variables.
+
+### Frontend (Publishable Key)
+
+1.  **Create a `.env` file:** In the root of the `Worksie` directory, create a new file named `.env` if you haven't already.
+
+2.  **Add your Stripe publishable key:** Add the following line to your `.env` file, replacing the placeholder value with your actual Stripe publishable key.
+
+    ```
+    VITE_STRIPE_PUBLISHABLE_KEY="YOUR_STRIPE_PUBLISHABLE_KEY"
+    ```
+
+### Backend (Secret Key)
+
+1.  **Set the secret key in Firebase Functions config:** You need to set your Stripe secret key in the Firebase Functions environment configuration. You can do this using the Firebase CLI.
+
+    ```bash
+    firebase functions:config:set stripe.secret="YOUR_STRIPE_SECRET_KEY"
+    ```
+
+    Replace `YOUR_STRIPE_SECRET_KEY` with your actual Stripe secret key. After setting the config, you will need to redeploy your functions for the changes to take effect:
+
+    ```bash
+    firebase deploy --only functions
+    ```
