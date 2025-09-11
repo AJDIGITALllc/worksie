@@ -3,6 +3,17 @@ variable "worksie_assets_bucket_name" {
   type        = string
 }
 
+variable "admin_api_url" {
+  description = "The URL of the admin API for the rollback function to call."
+  type        = string
+}
+
+variable "admin_api_bearer_token" {
+  description = "The bearer token for authenticating with the admin API."
+  type        = string
+  sensitive   = true
+}
+
 resource "google_pubsub_topic" "alerts_inference_latency" {
   project = var.project_id
   name    = "alerts-inference-latency"
@@ -97,8 +108,9 @@ resource "google_cloudfunctions2_function" "slo_rollback_fn" {
     available_memory    = "256M"
     timeout_seconds     = 30
     environment_variables = {
-      ADMIN_API_URL = "https://<YOUR_API_DOMAIN>/v1/admin/models/rollback"
-      API_BEARER    = "REDACTED_TOKEN"
+      ADMIN_API_URL          = var.admin_api_url
+      API_BEARER             = var.admin_api_bearer_token
+      AUTO_ROLLBACK_DRYRUN   = "false"
     }
     service_account_email = google_service_account.rollback_fn_sa.email
   }

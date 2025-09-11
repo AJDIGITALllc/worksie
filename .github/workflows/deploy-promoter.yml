@@ -1,66 +1,62 @@
-name: Deploy Promoter and SLO Function
+name: Deploy Backend Services and Infrastructure
 on:
   push:
     branches:
       - main
     paths:
-      - 'services/promoter/**'
-      - 'services/functions/slo-rollback-fn/**'
+      - 'services/**'
       - 'infra/terraform/**'
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
-      id-token: 'write'
+      id-token: 'write' # Required for authenticating to GCP
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # NOTE: In a real project, you would set up authentication with GCP
-      # using a service account. For example:
-      # - id: 'auth'
-      #   uses: 'google-github-actions/auth@v2'
+      # 1. Authenticate to Google Cloud
+      # This step uses Workload Identity Federation to authenticate with GCP.
+      # You must set up WIF in your GCP project and add the required secrets
+      # (WIF_PROVIDER, WIF_SERVICE_ACCOUNT) to your GitHub repository.
+      # - name: Authenticate to Google Cloud
+      #   id: auth
+      #   uses: google-github-actions/auth@v2
       #   with:
-      #     credentials_json: '${{ secrets.GCP_SA_KEY }}'
+      #     workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+      #     service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-      - name: Build Promoter Service
-        run: |
-          echo "Simulating Docker build and push for promoter..."
-          # gcloud auth configure-docker us-docker.pkg.dev -q
-          # docker build -t us-docker.pkg.dev/$GCP_PROJECT/worksie/promoter:$GITHUB_SHA services/promoter
-          # docker push us-docker.pkg.dev/$GCP_PROJECT/worksie/promoter:$GITHUB_SHA
-          echo "Image: us-docker.pkg.dev/$GCP_PROJECT/worksie/promoter:$GITHUB_SHA"
+      # 2. Build and Push the Promoter Docker Image
+      # This step would build the Docker image for the promoter service and push it
+      # to a container registry like Google Artifact Registry.
+      # - name: Build and Push Promoter Image
+      #   run: |-
+      #     gcloud auth configure-docker us-docker.pkg.dev -q
+      #     docker build -t us-docker.pkg.dev/$GCP_PROJECT/worksie/promoter:$GITHUB_SHA services/promoter
+      #     docker push us-docker.pkg.dev/$GCP_PROJECT/worksie/promoter:$GITHUB_SHA
 
-      - name: Update Promoter Job Image
+      # 3. Deploy Infrastructure with Terraform
+      # This section packages the Cloud Function and applies the Terraform configuration.
+      # It assumes you have a GCS bucket for storing the function's code.
+      - name: Package and Deploy Infrastructure
         run: |
-          echo "Simulating gcloud command to update promoter job..."
-          # gcloud run jobs update model-promoter \
-          #   --image us-docker.pkg.dev/$GCP_PROJECT/worksie/promoter:$GITHUB_SHA \
-          #   --region $REGION --quiet
-          echo "Promoter job image updated."
-
-      # This section would ideally be in a separate infrastructure CI pipeline
-      # that runs when terraform files change.
-      - name: Zip slo-rollback-fn
-        run: |
+          # Zip the Cloud Function code
           cd services/functions/slo-rollback-fn
           zip -r ../../../slo-rollback-fn.zip .
           cd -
-          echo "SLO rollback function zipped to slo-rollback-fn.zip"
 
-      - name: Upload SLO function to GCS
-        run: |
-          echo "Simulating gsutil command to copy zip..."
-          # gsutil cp slo-rollback-fn.zip gs://$ASSETS_BUCKET/functions/slo-rollback-fn.zip
-          echo "Function zip uploaded to GCS."
+          # Upload the zip to GCS (replace with your bucket name)
+          # gsutil cp slo-rollback-fn.zip gs://your-assets-bucket/functions/slo-rollback-fn.zip
 
-      - name: Terraform Apply
-        run: |
-          echo "Simulating terraform apply..."
+          # Apply Terraform changes
           # cd infra/terraform
           # terraform init
-          # terraform apply -auto-approve
-          echo "Terraform apply complete."
+          # terraform apply -auto-approve \
+          #   -var="project_id=$GCP_PROJECT" \
+          #   -var="promoter_image=us-docker.pkg.dev/$GCP_PROJECT/worksie/promoter:$GITHUB_SHA" \
+          #   -var="admin_api_url=${{ secrets.ADMIN_API_URL }}" \
+          #   -var="admin_api_bearer_token=${{ secrets.ADMIN_API_BEARER_TOKEN }}"
+          echo "CI/CD steps are for demonstration. Uncomment and configure them for a real deployment."

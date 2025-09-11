@@ -1,22 +1,44 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import os, json, subprocess
-from google.cloud import pubsub_v1
+from google.cloud import pubsub_v1, firestore
 
-# Placeholder for the actual auth guard dependency
-def auth_guard():
-    # In a real application, this would validate a token
-    # and return user info. For this implementation, we'll
-    # return a mock user with admin privileges.
-    return {"uid": "mock-admin-user", "isAdmin": True}
+# --- Constants for Promotion Guard ---
+# Define metric budgets. In a real system, these might come from config.
+METRIC_BUDGETS = {
+    "val_mae": 50.0,  # Maximum acceptable validation Mean Absolute Error
+    "p95_ms": 2000,   # Maximum acceptable p95 latency in milliseconds
+}
 
-router = APIRouter(prefix="/v1/admin", tags=["admin"])
+from fastapi.security import APIKeyHeader
+import secrets
+
+# --- Security ---
+API_KEY_NAME = "X-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
+
+async def get_api_key(key: str = Depends(api_key_header)):
+    """Dependency to validate the API key."""
+    if not ADMIN_API_KEY:
+        raise HTTPException(status_code=500, detail="API Key not configured on server.")
+    if not secrets.compare_digest(key, ADMIN_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid or missing API Key.")
+    return key
+
+# A mock user object based on API key auth
+def get_user_from_api_key(api_key: str = Depends(get_api_key)):
+    return {"uid": "api-user", "isAdmin": True}
+
+
+router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(get_api_key)])
 publisher = pubsub_v1.PublisherClient()
-PROMOTE_TOPIC = os.getenv("PROMOTE_TOPIC", "projects/your-gcp-project-id/topics/promote-model")
+db = firestore.Client()
+PROMOTE_TOPIC = os.getenv("PROMOTE_TOPIC")
 
-def require_admin(user=Depends(auth_guard)):
-    if not user or not user.get("isAdmin"):
-        raise HTTPException(status_code=403, detail="Forbidden")
+def require_admin(user: dict = Depends(get_user_from_api_key)):
+    # The dependency on the router already ensures the user is authenticated.
+    # This function now mainly serves to inject the user object.
     return user
 
 class PromoteReq(BaseModel):
@@ -27,6 +49,30 @@ class PromoteReq(BaseModel):
 
 @router.post("/models/promote")
 def promote(req: PromoteReq, user=Depends(require_admin)):
+    # --- Promotion Guard Logic ---
+    model_ref = db.collection("model_registry").document(req.modelId)
+    model_doc = model_ref.get()
+
+    if not model_doc.exists:
+        raise HTTPException(status_code=404, detail=f"Model {req.modelId} not found.")
+
+    model_data = model_doc.to_dict()
+    metrics = model_data.get("metrics", {})
+
+    if not metrics:
+        # Allow promotion if no metrics are present, but maybe log a warning.
+        print(f"Warning: Promoting model {req.modelId} without any metrics.")
+    else:
+        val_mae = metrics.get("val_mae")
+        p95_ms = metrics.get("p95_ms")
+
+        if val_mae and val_mae > METRIC_BUDGETS["val_mae"]:
+            raise HTTPException(status_code=400, detail=f"Promotion failed: val_mae ({val_mae}) exceeds budget ({METRIC_BUDGETS['val_mae']}).")
+
+        if p95_ms and p95_ms > METRIC_BUDGETS["p95_ms"]:
+            raise HTTPException(status_code=400, detail=f"Promotion failed: p95_ms ({p95_ms}) exceeds budget ({METRIC_BUDGETS['p95_ms']}).")
+    # --- End Promotion Guard ---
+
     payload = {
         "modelId": req.modelId,
         "rolloutRatio": max(0.0, min(1.0, req.rolloutRatio)),
