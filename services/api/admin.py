@@ -10,36 +10,32 @@ METRIC_BUDGETS = {
     "p95_ms": 2000,   # Maximum acceptable p95 latency in milliseconds
 }
 
-from fastapi.security import APIKeyHeader
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import secrets
 
 # --- Security ---
-API_KEY_NAME = "X-API-Key"
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
-ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
+# This uses a simple bearer token for authentication. In a production system,
+# this should be replaced with a more robust OIDC or JWT validation flow.
+bearer_scheme = HTTPBearer()
+ADMIN_API_BEARER_TOKEN = os.getenv("API_BEARER")
 
-async def get_api_key(key: str = Depends(api_key_header)):
-    """Dependency to validate the API key."""
-    if not ADMIN_API_KEY:
-        raise HTTPException(status_code=500, detail="API Key not configured on server.")
-    if not secrets.compare_digest(key, ADMIN_API_KEY):
-        raise HTTPException(status_code=401, detail="Invalid or missing API Key.")
-    return key
+def require_admin(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    """Dependency to ensure the user is an admin."""
+    if not ADMIN_API_BEARER_TOKEN:
+        raise HTTPException(status_code=500, detail="Admin bearer token not configured on server.")
 
-# A mock user object based on API key auth
-def get_user_from_api_key(api_key: str = Depends(get_api_key)):
-    return {"uid": "api-user", "isAdmin": True}
+    is_authorized = secrets.compare_digest(creds.credentials, ADMIN_API_BEARER_TOKEN)
+    if not is_authorized:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing bearer token.")
+
+    # Return a mock user object. In a real system, this would come from the token claims.
+    return {"uid": "api-admin-user", "isAdmin": True}
 
 
-router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(get_api_key)])
+router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 publisher = pubsub_v1.PublisherClient()
 db = firestore.Client()
 PROMOTE_TOPIC = os.getenv("PROMOTE_TOPIC")
-
-def require_admin(user: dict = Depends(get_user_from_api_key)):
-    # The dependency on the router already ensures the user is authenticated.
-    # This function now mainly serves to inject the user object.
-    return user
 
 class PromoteReq(BaseModel):
     modelId: str

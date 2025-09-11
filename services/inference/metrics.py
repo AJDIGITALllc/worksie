@@ -6,9 +6,10 @@ import sys
 # Initialize clients once to be reused.
 try:
     client = monitoring_v3.MetricServiceClient()
-    # GOOGLE_CLOUD_PROJECT is automatically available in most GCP environments.
-    # Fallback to a placeholder if not set.
-    project_id = os.getenv('GOOGLE_CLOUD_PROJECT', 'your-gcp-project-id')
+    # GOOGLE_CLOUD_PROJECT should be automatically available in any GCP environment.
+    project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
+    if not project_id:
+        raise ValueError("GOOGLE_CLOUD_PROJECT environment variable not set.")
     project_name = f"projects/{project_id}"
 except Exception as e:
     print(f"Failed to initialize Monitoring client: {e}", file=sys.stderr)

@@ -1,1 +1,4 @@
 google-cloud-monitoring
+fastapi
+uvicorn[standard]
+pydantic

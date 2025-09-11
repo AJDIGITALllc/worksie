@@ -1,0 +1,79 @@
+{
+  "_comment": "To use this dashboard in Looker Studio: 1. Create a new blank report. 2. In the top-right menu (⋮), find the option to import/edit the report JSON and paste this content. 3. Create the required BigQuery and Cloud Monitoring data sources. 4. Replace the placeholder 'DATA_SOURCE_*' values in this JSON with your actual data source IDs.",
+  "version": "lookerstudio.v1",
+  "report": {
+    "title": "Worksie - Inference Ops",
+    "theme": { "primaryColor": "#111827", "accentColor": "#6366F1", "chartPalette": "DEFAULT" },
+    "pages": [
+      {
+        "title": "Ops Overview",
+        "components": [
+          {
+            "type": "TABLE",
+            "dataSource": "DATA_SOURCE_AUDIT",
+            "title": "Recent Promotions & Rollbacks",
+            "fields": ["event_ts","event_type","model_id","prev_model_id","rollout_ratio","requested_by"],
+            "sort": [{ "field": "event_ts", "desc": true }],
+            "style": { "rowsPerPage": 10 }
+          },
+          {
+            "type": "TIME_SERIES",
+            "dataSource": "DATA_SOURCE_AUDIT",
+            "title": "Events per Day",
+            "dimension": "event_ts",
+            "metrics": [{ "field": "event_type", "aggregation": "COUNT" }],
+            "dateRange": "LAST_30_DAYS"
+          }
+        ]
+      },
+      {
+        "title": "Canary Rollout",
+        "components": [
+          {
+            "type": "TIME_SERIES",
+            "dataSource": "DATA_SOURCE_ROLLOUT",
+            "title": "Canary Rollout Ratio Over Time",
+            "dimension": "day",
+            "metrics": [{ "field": "rollout_ratio", "aggregation": "AVG" }],
+            "dateRange": "LAST_90_DAYS",
+            "style": { "yAxisMin": 0, "yAxisMax": 1 }
+          }
+        ]
+      },
+      {
+        "title": "Latency & Errors",
+        "components": [
+          {
+            "type": "TIME_SERIES",
+            "dataSource": "DATA_SOURCE_SYNTH_API",
+            "title": "Synthetic API Latency (ms)",
+            "dimension": "time",
+            "metrics": [{ "field": "value", "aggregation": "AVG", "label": "API synthetic ms" }],
+            "dateRange": "LAST_7_DAYS"
+          },
+          {
+            "type": "TIME_SERIES",
+            "dataSource": "DATA_SOURCE_SYNTH_INF",
+            "title": "Synthetic Inference Latency (ms)",
+            "dimension": "time",
+            "metrics": [{ "field": "value", "aggregation": "AVG", "label": "Inference synthetic ms" }],
+            "dateRange": "LAST_7_DAYS"
+          }
+        ]
+      },
+      {
+        "title": "Model Split",
+        "components": [
+          {
+            "type": "PIE",
+            "dataSource": "DATA_SOURCE_MODEL_SPLIT",
+            "title": "Requests by Model Version",
+            "dimension": "model_version",
+            "metrics": [{ "field": "count", "aggregation": "SUM" }],
+            "dateRange": "LAST_7_DAYS"
+          }
+        ]
+      }
+    ]
+  }
+}

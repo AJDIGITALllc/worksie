@@ -5,37 +5,56 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from google.cloud import firestore
 
-ADMIN_API = os.environ.get("ADMIN_API_URL")
+ADMIN_API_BASE_URL = os.environ.get("ADMIN_API_URL") # Should be the base URL, e.g., https://api.your-domain.com
 API_BEARER = os.environ.get("API_BEARER", "")
 DEBOUNCE_MINUTES = 15
 
 db = firestore.Client()
 
+def get_active_model_id_from_firestore():
+    """Fetches the currently active model ID directly from Firestore."""
+    q = db.collection("model_registry").where("isActive", "==", True).limit(1).stream()
+    active_models = list(q)
+    if not active_models:
+        raise RuntimeError("No active model found in Firestore.")
+    return active_models[0].id
+
 def call_rollback():
     """Calls the admin API to trigger a model rollback."""
-    # --- Dry-Run Mode Logic ---
-    is_dry_run = os.environ.get("AUTO_ROLLBACK_DRYRUN", "false").lower() == "true"
-    if is_dry_run:
-        print("DRY RUN: Auto-rollback would be triggered, but is in dry-run mode. No action taken.")
-        # Return a success-like status so the rest of the function proceeds
-        return 200
-    # --- End Dry-Run Mode Logic ---
+    if not ADMIN_API_BASE_URL:
+        raise ValueError("ADMIN_API_URL is not set.")
 
-    if not ADMIN_API:
-        print("ADMIN_API_URL environment variable not set. Cannot call rollback API.")
-        return 500
-
+    url = f"{ADMIN_API_BASE_URL}/v1/admin/models/rollback"
     req = urllib.request.Request(
-        ADMIN_API,
+        url,
         data=json.dumps({}).encode("utf-8"), # Rollback to previous model by default
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {API_BEARER}"
-        },
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {API_BEARER}"},
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=10) as resp:
         print(f"Admin API response: {resp.read().decode('utf-8')}")
+        return resp.status
+
+def clamp_canary():
+    """Calls the promote endpoint to set the canary rollout ratio to 0."""
+    active_model_id = get_active_model_id_from_firestore()
+    if not active_model_id:
+        raise ValueError("Could not determine active model ID to clamp.")
+
+    url = f"{ADMIN_API_BASE_URL}/v1/admin/models/promote"
+    payload = {
+        "modelId": active_model_id,
+        "rolloutRatio": 0.0,
+        "notes": f"auto-clamp of {active_model_id} to 0% due to 5xx error rate alert"
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {API_BEARER}"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        print(f"Admin API response for clamping canary: {resp.read().decode('utf-8')}")
         return resp.status
 
 def entrypoint(event, context):
@@ -43,6 +62,12 @@ def entrypoint(event, context):
     Cloud Function entry point that is triggered by a Pub/Sub message.
     """
     print(f"Received event: {event}")
+
+    # --- Dry-Run Mode Logic ---
+    is_dry_run = os.environ.get("AUTO_ROLLBACK_DRYRUN", "false").lower() == "true"
+    if is_dry_run:
+        print("DRY RUN: Auto-rollback would be triggered, but is in dry-run mode. No action taken.")
+        return
 
     # --- Debounce Logic ---
     now = datetime.now(timezone.utc)
@@ -57,32 +82,32 @@ def entrypoint(event, context):
     # --- End Debounce Logic ---
 
     try:
-        # The actual data is in the 'data' field, base64 encoded.
         if 'data' not in event:
             print("No 'data' field in the event payload. Ignoring.")
             return
 
         data = base64.b64decode(event["data"]).decode("utf-8")
         alert = json.loads(data)
-
-        # Check if the alert is the one we are interested in.
-        # This is a simple check; a real implementation might be more robust.
         alert_text = json.dumps(alert)
-        if "run.googleapis.com/request_latencies" not in alert_text and "p95_latency_slo" not in alert_text:
-            print("Ignoring alert that is not a latency alert.")
+
+        # Determine mitigation strategy based on alert type
+        if "5xx" in alert_text:
+            print("5xx error rate alert received. Clamping canary to 0%.")
+            status = clamp_canary()
+            print(f"Canary clamp triggered. Admin API status code: {status}")
+        elif "run.googleapis.com/request_latencies" in alert_text or "p95_latency_slo" in alert_text:
+            print("Latency alert received. Triggering full rollback...")
+            status = call_rollback()
+            print(f"Rollback triggered. Admin API status code: {status}")
+        else:
+            print("Ignoring alert that is not a latency or 5xx alert.")
             return
 
-        print("Latency alert received. Triggering rollback...")
-        status = call_rollback()
-        print(f"Rollback triggered. Admin API status code: {status}")
-
-        # If rollback was successful, update the timestamp
+        # If mitigation was successful, update the timestamp
         if 200 <= status < 300:
             debounce_ref.set({"timestamp": now})
             print(f"Updated debounce timestamp to {now.isoformat()}")
 
     except Exception as e:
         print(f"An error occurred while processing the alert: {e}")
-        # Re-raising the exception can be useful for triggering retries
-        # or for surfacing the error in Cloud Functions logs.
         raise
