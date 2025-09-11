@@ -1,0 +1,4 @@
+# No external dependencies are required for this function,
+# as it only uses standard Python libraries (base64, json, os, urllib).
+# This file is included for completeness and can be used if
+# dependencies like 'requests' are added in the future.
