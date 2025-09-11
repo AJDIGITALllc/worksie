@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
-import { getRemoteConfigValue } from '../logic/remoteConfig.js';
+import { initializeRemoteConfig, getRemoteConfigValue } from '../logic/remoteConfig.js';
 
 const PromoBanner = () => {
   const [isEnabled, setIsEnabled] = useState(false);
   const [text, setText] = useState('');
 
   useEffect(() => {
-    const enabled = getRemoteConfigValue('promo_banner_enabled').asBoolean();
-    const bannerText = getRemoteConfigValue('promo_banner_text').asString();
-    setIsEnabled(enabled);
-    setText(bannerText);
+    const fetchConfig = async () => {
+      await initializeRemoteConfig();
+      const enabled = getRemoteConfigValue('promo_banner_enabled').asBoolean();
+      const bannerText = getRemoteConfigValue('promo_banner_text').asString();
+      setIsEnabled(enabled);
+      setText(bannerText);
+    };
+
+    fetchConfig();
   }, []);
 
   if (!isEnabled) {
